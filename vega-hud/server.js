@@ -3,6 +3,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
 const PORT = Number(process.env.PORT) || 3000;
 const LAT = process.env.LAT || '35.6812';   // 既定: 東京駅
@@ -109,7 +110,7 @@ function demoItems(cat) {
     link: '',
     time: now - i * 17 * 60 * 1000,
     source: 'DEMO',
-    desc: 'これはダミーデータです。インターネットに接続した環境で node server.js を実行すると実際のニュースに置き換わります。',
+    desc: 'これはダミーデータです。ニュースフィードの取得に成功すると実際の記事に置き換わります。',
   }));
 }
 
@@ -180,7 +181,8 @@ function sendJSON(res, code, obj) {
   res.end(JSON.stringify(obj));
 }
 
-http.createServer(async (req, res) => {
+function createServer() {
+  return http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   try {
     if (url.pathname === '/api/news') {
@@ -203,6 +205,20 @@ http.createServer(async (req, res) => {
   } catch (e) {
     sendJSON(res, 502, { error: String(e.message || e) });
   }
-}).listen(PORT, () => {
-  console.log(`VEGA HUD online → http://localhost:${PORT}${FORCE_DEMO ? '  (DEMO MODE)' : ''}`);
-});
+  });
+}
+
+module.exports = { FEEDS, getNews, getWeather, parseFeed };
+
+if (require.main === module) {
+  createServer().listen(PORT, () => {
+    console.log(`VEGA HUD online${FORCE_DEMO ? '  (DEMO MODE)' : ''}`);
+    console.log(`  PC      → http://localhost:${PORT}`);
+    // 同じWi-Fiのスマホから開くためのアドレス
+    for (const list of Object.values(os.networkInterfaces())) {
+      for (const n of list || []) {
+        if (n.family === 'IPv4' && !n.internal) console.log(`  スマホ  → http://${n.address}:${PORT}`);
+      }
+    }
+  });
+}

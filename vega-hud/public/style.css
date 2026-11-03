@@ -54,8 +54,15 @@ kbd {
 .boot-box { width: min(520px, 90vw); }
 .boot-logo {
   font-family: var(--disp); font-weight: 900; font-size: 54px; letter-spacing: .5em;
-  color: var(--cyan); text-shadow: 0 0 18px var(--cyan); margin-bottom: 18px;
+  color: var(--cyan); text-shadow: 0 0 18px var(--cyan); margin-bottom: 8px;
 }
+.boot-acro {
+  display: flex; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 20px;
+  font-family: var(--disp); font-size: 13px; letter-spacing: .22em; color: var(--text-dim);
+}
+.boot-acro span { opacity: 0; transform: translateY(4px); transition: opacity .35s, transform .35s; }
+.boot-acro span.on { opacity: 1; transform: none; }
+.boot-acro b, .brand-sub b { color: var(--cyan); font-weight: 900; text-shadow: 0 0 8px var(--cyan); }
 #boot-log { font-family: var(--mono); color: var(--text-dim); font-size: 13px; min-height: 9em; margin: 0; white-space: pre-wrap; }
 .boot-bar { height: 3px; background: var(--cyan-faint); margin-top: 14px; }
 .boot-bar span { display: block; height: 100%; width: 0; background: var(--cyan); box-shadow: 0 0 10px var(--cyan); transition: width .25s; }
@@ -64,7 +71,7 @@ kbd {
 .hud { position: relative; z-index: 1; height: 100vh; height: 100dvh; display: grid; grid-template-rows: auto 1fr auto; }
 .topbar {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
-  padding: 14px 24px; border-bottom: 1px solid var(--cyan-line);
+  padding: calc(14px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right)) 14px calc(24px + env(safe-area-inset-left)); border-bottom: 1px solid var(--cyan-line);
   background: linear-gradient(180deg, rgba(95,244,255,.06), transparent);
 }
 .brand { display: flex; align-items: center; gap: 12px; }
@@ -74,7 +81,8 @@ kbd {
 }
 .brand-mark::after { content: ''; position: absolute; inset: 7px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
 .brand-name { font-family: var(--disp); font-weight: 900; letter-spacing: .35em; font-size: 20px; color: var(--cyan); text-shadow: 0 0 10px var(--cyan-dim); }
-.brand-sub { font-family: var(--mono); font-size: 10px; letter-spacing: .25em; color: var(--text-dim); }
+.brand-sub { font-family: var(--mono); font-size: 10px; letter-spacing: .18em; color: var(--text-dim); }
+.brand-sub b { font-weight: 400; }
 .status-strip { display: flex; gap: 10px; }
 .chip {
   font-family: var(--mono); font-size: 11px; letter-spacing: .15em; padding: 4px 10px;
@@ -219,7 +227,7 @@ kbd {
 .help { list-style: none; padding: 0; margin: 0; font-size: 12px; color: var(--text-dim); line-height: 2; }
 
 /* ティッカー */
-.ticker { display: flex; border-top: 1px solid var(--cyan-line); background: rgba(95,244,255,.04); height: 34px; align-items: stretch; }
+.ticker { display: flex; border-top: 1px solid var(--cyan-line); background: rgba(95,244,255,.04); height: calc(34px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); align-items: stretch; }
 .ticker-label {
   font-family: var(--disp); font-weight: 700; font-size: 12px; letter-spacing: .2em; color: var(--bg);
   background: var(--cyan); display: grid; place-items: center; padding: 0 16px 0 24px;
@@ -242,7 +250,10 @@ kbd {
   .ticker { position: sticky; bottom: 0; z-index: 5; background: var(--bg); }
 }
 @media (max-width: 640px) {
-  .topbar { padding: 10px 16px; flex-wrap: wrap; }
+  .topbar { padding: calc(10px + env(safe-area-inset-top)) 16px 10px; flex-wrap: wrap; }
+  .boot-logo { font-size: 42px; }
+  .detail { touch-action: pan-y; }
+  .list li { padding: 11px 6px; }
   .status-strip { order: 3; width: 100%; }
   .brand-sub { display: none; }
   #clock-time { font-size: 20px; }

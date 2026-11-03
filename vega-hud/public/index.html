@@ -4,6 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>VEGA News HUD</title>
+<meta name="description" content="VEGA — Virtual Executive for Global Awareness. SF風HUDのニュースダッシュボード">
+<meta name="theme-color" content="#02070d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="VEGA">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&family=Noto+Sans+JP:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="style.css">
@@ -16,6 +25,9 @@
 <div id="boot" aria-hidden="true">
   <div class="boot-box">
     <div class="boot-logo">VEGA</div>
+    <div class="boot-acro" id="boot-acro">
+      <span><b>V</b>IRTUAL</span><span><b>E</b>XECUTIVE</span><span>FOR</span><span><b>G</b>LOBAL</span><span><b>A</b>WARENESS</span>
+    </div>
     <pre id="boot-log"></pre>
     <div class="boot-bar"><span id="boot-progress"></span></div>
   </div>
@@ -27,7 +39,7 @@
       <span class="brand-mark"></span>
       <div>
         <div class="brand-name">VEGA</div>
-        <div class="brand-sub">NEWS INTELLIGENCE SYSTEM</div>
+        <div class="brand-sub"><b>V</b>IRTUAL <b>E</b>XECUTIVE FOR <b>G</b>LOBAL <b>A</b>WARENESS</div>
       </div>
     </div>
     <div class="status-strip">
@@ -114,6 +126,7 @@
 
       <div class="panel-title"><span>SYS</span> // DIAGNOSTICS</div>
       <dl class="diag">
+        <dt>MODE</dt><dd id="g-mode">--</dd>
         <dt>LAST SYNC</dt><dd id="g-sync">--</dd>
         <dt>LATENCY</dt><dd id="g-lat">--</dd>
         <dt>NEXT SYNC</dt><dd id="g-next">--</dd>

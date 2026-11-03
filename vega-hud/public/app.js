@@ -11,6 +11,7 @@
     95: '雷雨', 96: '雹を伴う雷雨', 99: '激しい雹を伴う雷雨',
   };
 
+  const narrow = matchMedia('(max-width: 1100px)');
   const state = { cat: 'top', items: [], sel: 0, nextSync: 0, bootAt: Date.now(), listening: false, demo: false, speechGen: 0 };
 
   // ---------- ユーティリティ ----------
@@ -115,7 +116,10 @@
         el('div', 't', it.title),
         (() => { const m = el('div', 'm'); m.append(el('span', 'src', it.source), el('span', null, ago(it.time))); return m; })(),
       );
-      li.addEventListener('click', () => select(i, true));
+      li.addEventListener('click', () => {
+        select(i, true);
+        if (narrow.matches) $('detail').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
       list.appendChild(li);
     });
     highlight();
@@ -169,6 +173,27 @@
   }
 
   // ---------- データ取得 ----------
+  // server モード: node server.js の API を使う / static モード: GitHub Pages 等の data/*.json を読む
+  let MODE = null;
+  async function getJSON(apiPath, staticPath) {
+    if (MODE !== 'static') {
+      try {
+        const r = await fetch(apiPath, { cache: 'no-store' });
+        if ((r.headers.get('content-type') || '').includes('application/json')) {
+          MODE = 'server';
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        }
+      } catch (e) {
+        if (MODE === 'server') throw e;
+      }
+    }
+    const r = await fetch(`${staticPath}?t=${Date.now()}`, { cache: 'no-store' });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    MODE = 'static';
+    return r.json();
+  }
+  const modeLabel = () => (MODE === 'static' ? 'STATIC' : MODE === 'server' ? 'SERVER' : '--');
   async function loadNews(cat = state.cat, { voice = false } = {}) {
     state.cat = cat;
     document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('active', b.dataset.cat === cat));
@@ -176,9 +201,9 @@
     $('core-label').textContent = 'SYNCING';
     say(`${CAT_LABEL[cat]}ニュースを取得しています…`);
     try {
-      const res = await fetch(`/api/news?cat=${encodeURIComponent(cat)}`, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      const t0 = performance.now();
+      const data = await getJSON(`api/news?cat=${encodeURIComponent(cat)}`, `data/${cat}.json`);
+      const rtt = Math.round(performance.now() - t0);
       state.items = data.items || [];
       state.sel = 0;
       renderList();
@@ -187,7 +212,8 @@
       renderSources(data.sources || []);
       $('feed-count').textContent = state.items.length;
       $('g-sync').textContent = new Date(data.fetchedAt).toLocaleTimeString('ja-JP');
-      $('g-lat').textContent = data.cached ? 'CACHED' : `${data.latencyMs} ms`;
+      $('g-lat').textContent = MODE === 'static' ? `${rtt} ms` : data.cached ? 'CACHED' : `${data.latencyMs} ms`;
+      $('g-mode').textContent = modeLabel();
       setChip('chip-link', data.sources.some((s) => s.ok) ? 'ok' : 'err');
       setChip('chip-mode', data.demo ? 'warn' : 'ok', data.demo ? 'DEMO' : 'LIVE');
       state.demo = data.demo;
@@ -200,7 +226,7 @@
     } catch (e) {
       setChip('chip-link', 'err');
       $('core-label').textContent = 'OFFLINE';
-      say(`通信エラー: ${e.message}。サーバーが起動しているか確認してください。`);
+      say(`通信エラー: ${e.message}。電波状況かサーバーを確認してください。`);
     } finally {
       $('core').classList.remove('loading');
       state.nextSync = Date.now() + REFRESH_MS;
@@ -209,9 +235,7 @@
 
   async function loadWeather() {
     try {
-      const res = await fetch('/api/weather', { cache: 'no-store' });
-      if (!res.ok) throw new Error();
-      const w = await res.json();
+      const w = await getJSON('api/weather', 'data/weather.json');
       $('w-temp').textContent = w.temp != null ? Math.round(w.temp) : '--';
       $('w-desc').textContent = `${w.city} · ${WMO[w.code] ?? '—'}`;
       $('w-mm').textContent = w.max != null ? `${Math.round(w.max)}° / ${Math.round(w.min)}°` : '--';
@@ -269,14 +293,18 @@
     stopSpeaking();
     try { rec.start(); } catch { /* 既に開始済み */ }
   }
-  if (SR) {
+  if (SR && !window.isSecureContext) {
+    $('btn-mic').disabled = true;
+    $('btn-mic').title = '音声コマンドは HTTPS 接続（または localhost）でのみ使えます';
+    setChip('chip-voice', synth ? 'warn' : 'err');
+  } else if (SR) {
     rec = new SR();
     rec.lang = 'ja-JP';
     rec.interimResults = false;
     rec.maxAlternatives = 1;
     rec.onstart = () => { state.listening = true; $('btn-mic').classList.add('on'); say('聞いています…'); };
     rec.onend = () => { state.listening = false; $('btn-mic').classList.remove('on'); };
-    rec.onerror = (e) => say(`音声認識エラー: ${e.error}`);
+    rec.onerror = (e) => say(e.error === 'not-allowed' ? 'マイクの使用が許可されていません。' : `音声認識エラー: ${e.error}`);
     rec.onresult = (e) => handleCommand(e.results[0][0].transcript);
     setChip('chip-voice', synth ? 'ok' : 'warn');
   } else {
@@ -296,6 +324,16 @@
     if (b) loadNews(b.dataset.cat);
   });
   $('btn-read').addEventListener('click', readCurrent);
+  // 詳細カードを左右スワイプで前後の記事へ
+  let touchX = null, touchY = null;
+  $('detail').addEventListener('touchstart', (e) => { touchX = e.touches[0].clientX; touchY = e.touches[0].clientY; }, { passive: true });
+  $('detail').addEventListener('touchend', (e) => {
+    if (touchX == null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    const dy = e.changedTouches[0].clientY - touchY;
+    touchX = null;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) select(state.sel + (dx < 0 ? 1 : -1), true);
+  }, { passive: true });
   $('btn-mic').addEventListener('click', toggleMic);
   document.addEventListener('keydown', (e) => {
     if (e.target.matches('input, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -329,7 +367,7 @@
   // ---------- 起動シーケンス ----------
   async function boot() {
     const lines = [
-      '> VEGA CORE v1.0 ............ INIT',
+      '> VEGA CORE v1.1 ............ INIT',
       '> NEURAL INTERFACE .......... OK',
       '> SPEECH SYNTH .............. ' + (synth ? 'OK' : 'N/A'),
       '> VOICE RECOGNITION ......... ' + (SR ? 'OK' : 'N/A'),
@@ -338,6 +376,10 @@
     ];
     const log = $('boot-log');
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    for (const sp of $('boot-acro').children) {
+      sp.classList.add('on');
+      if (!reduce) await new Promise((r) => setTimeout(r, 160));
+    }
     for (let i = 0; i < lines.length; i++) {
       log.textContent += lines[i] + '\n';
       $('boot-progress').style.width = `${((i + 1) / lines.length) * 100}%`;
@@ -345,6 +387,10 @@
     }
     await new Promise((r) => setTimeout(r, reduce ? 0 : 300));
     $('boot').classList.add('done');
+  }
+
+  if ('serviceWorker' in navigator && window.isSecureContext) {
+    navigator.serviceWorker.register('sw.js').catch(() => { /* オフライン対応なしで続行 */ });
   }
 
   buildTicks();
