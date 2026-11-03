@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>VEGA News HUD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="scanlines" aria-hidden="true"></div>
+
+<!-- 起動シーケンス -->
+<div id="boot" aria-hidden="true">
+  <div class="boot-box">
+    <div class="boot-logo">VEGA</div>
+    <pre id="boot-log"></pre>
+    <div class="boot-bar"><span id="boot-progress"></span></div>
+  </div>
+</div>
+
+<div class="hud">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark"></span>
+      <div>
+        <div class="brand-name">VEGA</div>
+        <div class="brand-sub">NEWS INTELLIGENCE SYSTEM</div>
+      </div>
+    </div>
+    <div class="status-strip">
+      <span class="chip" id="chip-link"><i></i>LINK</span>
+      <span class="chip" id="chip-voice"><i></i>VOICE</span>
+      <span class="chip" id="chip-mode"><i></i>LIVE</span>
+    </div>
+    <div class="clock">
+      <div id="clock-time">--:--:--</div>
+      <div id="clock-date">----</div>
+    </div>
+  </header>
+
+  <main class="grid">
+    <!-- 左: 見出し一覧 -->
+    <section class="panel left">
+      <div class="panel-title"><span>FEED</span> // HEADLINES <em id="feed-count">0</em></div>
+      <nav class="tabs" id="tabs">
+        <button data-cat="top" class="active"><b>1</b>主要</button>
+        <button data-cat="economy"><b>2</b>経済</button>
+        <button data-cat="world"><b>3</b>国際</button>
+        <button data-cat="tech"><b>4</b>テック</button>
+        <button data-cat="science"><b>5</b>科学</button>
+      </nav>
+      <ol id="list" class="list"></ol>
+    </section>
+
+    <!-- 中央: コア -->
+    <section class="core" id="core">
+      <div class="reactor-wrap">
+        <svg class="reactor" viewBox="-200 -200 400 400" aria-hidden="true">
+          <defs>
+            <radialGradient id="glow" r="0.5">
+              <stop offset="0%" stop-color="#e6fdff" stop-opacity="1"/>
+              <stop offset="35%" stop-color="#5ff4ff" stop-opacity="0.85"/>
+              <stop offset="100%" stop-color="#00b4d8" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <g class="spin s-slow"><circle r="190" class="ring thin" stroke-dasharray="2 7"/></g>
+          <g class="spin s-rev"><circle r="174" class="ring mid" stroke-dasharray="180 93"/></g>
+          <g class="spin s-med" id="ticks"></g>
+          <g class="spin s-rev-fast"><circle r="124" class="ring thick" stroke-dasharray="38 14"/></g>
+          <g class="spin s-fast"><circle r="104" class="ring thin" stroke-dasharray="60 20 4 20"/></g>
+          <circle r="92" class="ring faint"/>
+          <circle r="78" fill="url(#glow)" class="core-glow"/>
+          <circle r="54" class="ring bright"/>
+        </svg>
+        <div class="core-readout">
+          <div class="core-num" id="core-num">00</div>
+          <div class="core-label" id="core-label">STANDBY</div>
+        </div>
+      </div>
+
+      <div class="dialog">
+        <span class="speaker">VEGA &gt;</span>
+        <span id="say"></span><span class="caret">▌</span>
+      </div>
+
+      <article class="detail" id="detail">
+        <div class="detail-meta"><span id="d-source">—</span><span id="d-time"></span></div>
+        <h1 id="d-title">見出しを選択してください</h1>
+        <p id="d-desc"></p>
+        <div class="actions">
+          <button id="btn-read">▶ 読み上げ <kbd>Space</kbd></button>
+          <a id="btn-open" target="_blank" rel="noopener noreferrer">↗ 記事を開く <kbd>Enter</kbd></a>
+          <button id="btn-mic" title="音声コマンド (Chrome/Edge)">◉ 音声コマンド <kbd>M</kbd></button>
+        </div>
+      </article>
+    </section>
+
+    <!-- 右: 環境・診断 -->
+    <section class="panel right">
+      <div class="panel-title"><span>ENV</span> // ATMOSPHERICS</div>
+      <div class="weather" id="weather">
+        <div class="w-main"><span id="w-temp">--</span><small>°C</small></div>
+        <div class="w-desc" id="w-desc">取得中…</div>
+        <div class="w-grid">
+          <div><label>MAX/MIN</label><span id="w-mm">--</span></div>
+          <div><label>HUMIDITY</label><span id="w-hum">--</span></div>
+          <div><label>WIND</label><span id="w-wind">--</span></div>
+          <div><label>RAIN</label><span id="w-rain">--</span></div>
+        </div>
+      </div>
+
+      <div class="panel-title"><span>SYS</span> // DIAGNOSTICS</div>
+      <dl class="diag">
+        <dt>LAST SYNC</dt><dd id="g-sync">--</dd>
+        <dt>LATENCY</dt><dd id="g-lat">--</dd>
+        <dt>NEXT SYNC</dt><dd id="g-next">--</dd>
+        <dt>UPTIME</dt><dd id="g-up">--</dd>
+      </dl>
+      <ul class="sources" id="sources"></ul>
+
+      <div class="panel-title"><span>CMD</span> // CONTROLS</div>
+      <ul class="help">
+        <li><kbd>↑</kbd><kbd>↓</kbd> 選択</li>
+        <li><kbd>1</kbd>–<kbd>5</kbd> カテゴリ</li>
+        <li><kbd>R</kbd> 再取得</li>
+        <li><kbd>A</kbd> 全件ブリーフィング</li>
+        <li>音声: 「経済」「次」「読んで」「開いて」「更新」「ブリーフィング」「止めて」</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="ticker"><div class="ticker-label">LIVE</div><div class="ticker-view"><div class="ticker-track" id="ticker"></div></div></footer>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

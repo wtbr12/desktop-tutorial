@@ -1,0 +1,11 @@
+{
+  "name": "vega-hud",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SF風HUDのニュースダッシュボード (依存パッケージなし)",
+  "scripts": {
+    "start": "node server.js",
+    "demo": "DEMO=1 node server.js"
+  },
+  "engines": { "node": ">=18" }
+}
